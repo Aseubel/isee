@@ -16,10 +16,11 @@ public interface IRedisService {
 
     /**
      * 执行 Lua 脚本
-     * @param script 脚本
+     * 
+     * @param script     脚本
      * @param returnType 返回类型
-     * @param keys 键
-     * @param values 值
+     * @param keys       键
+     * @param values     值
      */
     <T> T executeScript(String script, RScript.ReturnType returnType, List<Object> keys, Object... values);
 
@@ -122,7 +123,6 @@ public interface IRedisService {
      */
     long decrBy(String key, long delta);
 
-
     /**
      * 移除指定 key 的值
      *
@@ -148,6 +148,7 @@ public interface IRedisService {
 
     /**
      * 删除集合中的指定值
+     * 
      * @param key
      * @param value
      */
@@ -237,7 +238,6 @@ public interface IRedisService {
      */
     void setMapExpired(String key, long expired);
 
-
     /**
      * 获取Map的过期时间
      *
@@ -248,10 +248,11 @@ public interface IRedisService {
 
     /**
      * 获取Map并转换为Java Map
+     * 
      * @param key 键
      * @return
      */
-    Map<String,String> getMapToJavaMap(String key);
+    Map<String, String> getMapToJavaMap(String key);
 
     /**
      * 移除哈希表中指定字段的值
@@ -280,6 +281,7 @@ public interface IRedisService {
 
     /**
      * 将指定的值添加到有序集合中
+     * 
      * @param key   键
      * @param value 值
      * @param score 分数
@@ -288,15 +290,17 @@ public interface IRedisService {
 
     /**
      * 获取有序集合中指定索引的值
+     * 
      * @param key   键
      * @param value 上一页最后的值
      * @param limit 限制数量
-     * @return      entry
+     * @return entry
      */
     <V> Collection<V> getFromSortedSet(String key, V value, int limit);
 
     /**
      * 获取有序集合中指定索引的值
+     * 
      * @param key   键
      * @param value 上一页最后的值
      * @param limit 限制数量
@@ -306,6 +310,7 @@ public interface IRedisService {
 
     /**
      * 增加有序集合中指定值的分数
+     * 
      * @param key   键
      * @param value 值
      * @param delta 分数增量
@@ -314,6 +319,7 @@ public interface IRedisService {
 
     /**
      * 减少有序集合中指定值的分数
+     * 
      * @param key   键
      * @param value 值
      * @param delta 分数减量
@@ -322,14 +328,16 @@ public interface IRedisService {
 
     /**
      * 获取有序集合中指定值的分数
+     * 
      * @param key   键
      * @param value 值
-     * @return      分数
+     * @return 分数
      */
     <T> Double getScoreFromSortedSet(String key, T value);
 
     /**
      * 移除有序集合中指定的值
+     * 
      * @param key   键
      * @param value 值
      */
@@ -404,6 +412,5 @@ public interface IRedisService {
 
     Boolean setNx(String key);
 
-    Boolean setNx(String key, long expired, TimeUnit timeUnit);
-
+    Boolean setNx(String key, Duration duration);
 }

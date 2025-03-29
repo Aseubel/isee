@@ -22,12 +22,10 @@ public class RedissonService implements IRedisService {
     private RedissonClient redissonClient;
 
     @Override
-    public <T> T executeScript(String script, RScript.ReturnType returnType, List<Object>keys, Object... values) {
+    public <T> T executeScript(String script, RScript.ReturnType returnType, List<Object> keys, Object... values) {
         RScript rScript = redissonClient.getScript();
         return rScript.eval(RScript.Mode.READ_WRITE, script, returnType, keys, values);
     }
-
-
 
     public <T> void setValue(String key, T value) {
         redissonClient.<T>getBucket(key).set(value);
@@ -151,7 +149,6 @@ public class RedissonService implements IRedisService {
         return redissonClient.getMap(key);
     }
 
-
     public <T> void addToMap(String key, String field, T value) {
         RMap<String, T> map = redissonClient.getMap(key);
         map.put(field, value);
@@ -172,7 +169,7 @@ public class RedissonService implements IRedisService {
         return map.remainTimeToLive();
     }
 
-    public Map<String,String> getMapToJavaMap(String key) {
+    public Map<String, String> getMapToJavaMap(String key) {
         RMap<String, String> map = redissonClient.getMap(key);
         return map.readAllMap();
     }
@@ -281,12 +278,12 @@ public class RedissonService implements IRedisService {
 
     @Override
     public Boolean setNx(String key) {
-        return redissonClient.getBucket(key).trySet("lock");
+        return redissonClient.getBucket(key).setIfAbsent("lock");
     }
 
     @Override
-    public Boolean setNx(String key, long expired, TimeUnit timeUnit) {
-        return redissonClient.getBucket(key).trySet("lock", expired, timeUnit);
+    public Boolean setNx(String key, Duration duration) {
+        return redissonClient.getBucket(key).setIfAbsent("lock", duration);
     }
 
 }
