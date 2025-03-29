@@ -7,15 +7,13 @@
 - **数据访问层**：与数据库交互
 - **安全层**：基于 `Redis` + `Jwt` 实现简单权限控制
 
-
-
 # 后端
 
 ## 数据库表
 
 数据库已经与传感器实现数据同步
 
-正常情况sensorHistoryData每分钟（可能有1~2秒偏差）更新一次所有传感器及其参数
+正常情况 sensorHistoryData 每分钟（可能有 1~2 秒偏差）更新一次所有传感器及其参数
 
 ```sql
 -- this means area
@@ -122,8 +120,6 @@ CREATE TABLE `sensors`  (
 SET FOREIGN_KEY_CHECKS = 1;
 ```
 
-
-
 ## 技术栈
 
 - Spring Boot 3.x
@@ -133,8 +129,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 - MySQL
 
 - Redis（缓存和鉴权）
-
-  
 
 ## 系统功能模块设计
 
@@ -161,8 +155,6 @@ CREATE TABLE `user` (
 CREATE UNIQUE INDEX uk_user_username ON `user` (username);
 ```
 
-
-
 ### 数据查询系统
 
 1. **实时数据查询**：按地区、传感器类型查询最新数据
@@ -181,12 +173,10 @@ CREATE TABLE `alert_notifications` (
   `sensor_param_id` int NOT NULL 0 COMMENT '触发预警的参数id',
   `alert_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '时间',
   `status` TINYINT UNSIGNED DEFAULT 0 COMMENT '0-未解决;1-已解决',
-) ENGINE = InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT = '预警规则表';
+) ENGINE = InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT = '预警通知表';
 CREATE UNIQUE INDEX uk_alert_notifications_sensor_id ON `alert_notifications` (sensor_id);
 CREATE UNIQUE INDEX uk_alert_notifications_sensor_param_id ON `alert_notifications` (sensor_param_id);
 ```
-
-
 
 ## 实现要点
 
@@ -198,8 +188,8 @@ CREATE UNIQUE INDEX uk_alert_notifications_sensor_param_id ON `alert_notificatio
    - 对频繁查询的数据使用 Redis 缓存，每分钟更新缓存保障数据有效
    - 提供分页和排序功能，优化大量数据查询体验
 3. **预警机制**：
-   - 定时任务轮询传感器数据，与前端使用SSE连接
-   - 当数据触发预警时，生成通知存储数据库，通过SSE向前端推送，同时手机短信通知管理员
+   - 定时任务轮询传感器数据，与前端使用 SSE 连接
+   - 当数据触发预警时，生成通知存储数据库，通过 SSE 向前端推送，同时手机短信通知管理员
 
 ## 部署
 
