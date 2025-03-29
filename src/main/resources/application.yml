@@ -1,0 +1,5 @@
+spring:
+  config:
+    name: isee-app
+  profiles:
+    active: dev
