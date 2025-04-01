@@ -18,7 +18,7 @@ import java.util.concurrent.*;
 @EnableConfigurationProperties(ThreadPoolConfigProperties.class)
 public class ThreadPoolConfig {
 
-    @Bean
+    @Bean(name = "threadPoolExecutor")
     @ConditionalOnMissingBean(ThreadPoolExecutor.class)
     public ThreadPoolTaskExecutor threadPoolExecutor(ThreadPoolConfigProperties properties) {
         // 实例化策略
