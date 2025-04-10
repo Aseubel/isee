@@ -50,7 +50,7 @@ public class UserController {
      * 更新用户信息
      */
     @PutMapping("/update")
-    @RequirePermission(minAdminLevel = 2)
+    @RequirePermission(minAdminLevel = 1)
     public Response<Void> updateUser(@RequestBody User user) {
         userService.updateUser(user);
         return Response.success();

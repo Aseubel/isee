@@ -15,7 +15,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("alert_notifications")
+@TableName("alert_notification")
 public class AlertNotification implements Serializable {
     @TableId(type = IdType.AUTO)
     private Integer id;

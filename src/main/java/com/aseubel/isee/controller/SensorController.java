@@ -4,6 +4,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import com.aseubel.isee.common.Response;
@@ -42,13 +48,25 @@ public class SensorController {
     @GetMapping("/history")
     @RequirePermission(checkArea = true)
     public Response<Page<SensorHistoryData>> getHistoryData(
-            @RequestParam LocalDateTime startTime,
-            @RequestParam LocalDateTime endTime,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime,
             @RequestParam(required = false) Integer areaId,
             @RequestParam(required = false) Integer sensorTypeId,
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size) {
         Page<SensorHistoryData> page = new Page<>(current, size);
         return Response.success(sensorDataService.getHistoryData(startTime, endTime, areaId, sensorTypeId, page));
+    }
+
+    /**
+     * 获取近一个月的历史数据
+     */
+    @GetMapping("/history/lastmonth")
+    @RequirePermission(checkArea = true)
+    public Response<Map<String, List<SensorData>>> getLastMonthHistoryData(
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime,
+            @RequestParam(required = false) Integer areaId) {
+        return Response.success(sensorDataService.getLastMonthHistoryData(startTime, endTime, areaId));
     }
 }

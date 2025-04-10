@@ -12,7 +12,7 @@ import java.util.List;
 public interface AlertNotificationMapper extends BaseMapper<AlertNotification> {
 
     @Select("SELECT s.DisplayName as sensorName, sp.DisplayName as sensorParamName, a.* " +
-            "FROM alert_notifications a " +
+            "FROM alert_notification a " +
             "LEFT JOIN sensors s ON a.sensor_id = s.ID " +
             "LEFT JOIN sensorParameter sp ON a.sensor_param_id = sp.ID " +
             "WHERE a.area_id = #{areaId} AND a.status = 0 " +

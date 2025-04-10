@@ -1,5 +1,6 @@
 package com.aseubel.isee.controller;
 
+import com.aseubel.isee.common.Response;
 import com.aseubel.isee.common.annotation.RequirePermission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -41,11 +42,12 @@ public class SseController {
 
 //    @RequirePermission(minAdminLevel = 1)
     @DeleteMapping("/unsubscribe")
-    public void unsubscribe(@RequestParam String userId) {
+    public Response<?> unsubscribe(@RequestParam String userId) {
         SseEmitter emitter = sseEmitters.get(userId);
         if (emitter != null) {
             emitter.complete();
             sseEmitters.remove(userId);
         }
+        return Response.success();
     }
 }

@@ -26,12 +26,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserService extends ServiceImpl<UserMapper, User> implements IUserService {
 
+    private final UserMapper userMapper;
     private final IRedisService redissonService;
 
     @Override
     public String login(String username, String password) throws Exception {
-        User user = getOne(new LambdaQueryWrapper<User>()
-                .eq(User::getUsername, username));
+        User user = userMapper.findByUsername(username);
 
         if (user == null || !BCrypt.checkpw(password, user.getPassword())) {
             throw new AuthException("用户名或密码错误");

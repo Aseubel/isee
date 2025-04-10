@@ -4,6 +4,8 @@ import com.aseubel.isee.pojo.entity.SensorData;
 import com.aseubel.isee.pojo.entity.SensorHistoryData;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,4 +36,17 @@ public interface ISensorDataService extends IService<SensorHistoryData> {
             Integer areaId,
             Integer sensorTypeId,
             Page<SensorHistoryData> page);
+
+    /**
+     * 获取最近一月的历史数据
+     *
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @param areaId 地区ID
+     * @return 最近一月的历史数据
+     */
+    Map<String, List<SensorData>> getLastMonthHistoryData(
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            Integer areaId);
 }

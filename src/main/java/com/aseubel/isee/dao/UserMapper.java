@@ -19,7 +19,9 @@ public interface UserMapper extends BaseMapper<User> {
     /**
      * 根据用户名查询用户
      */
-    @Select("SELECT * FROM user WHERE username = #{username}")
+    @Select("SELECT c.Name AS areaName, u.* " +
+            "FROM user u LEFT JOIN commInterfaces c ON c.ID = u.area_id " +
+            "WHERE username = #{username}")
     User findByUsername(@Param("username") String username);
 
     /**

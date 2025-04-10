@@ -60,22 +60,12 @@ public class SensorDataServiceImpl extends ServiceImpl<SensorHistoryDataMapper, 
                         Integer areaId,
                         Integer sensorTypeId,
                         Page<SensorHistoryData> page) {
-                List<SensorHistoryData> historyData = sensorHistoryDataMapper.findHistoryData(
-                                startTime,
-                                endTime,
-                                areaId,
-                                sensorTypeId);
+                return sensorHistoryDataMapper.findHistoryData(page, startTime, endTime, areaId, sensorTypeId);
+        }
 
-                // 手动分页
-                long total = historyData.size();
-                int start = (int) ((page.getCurrent() - 1) * page.getSize());
-                int end = Math.min(start + (int) page.getSize(), (int) total);
-
-                List<SensorHistoryData> pageData = historyData.subList(start, end);
-                page.setTotal(total);
-                page.setRecords(pageData);
-
-                return page;
+        @Override
+        public Map<String, List<SensorData>> getLastMonthHistoryData(LocalDateTime startTime, LocalDateTime endTime, Integer areaId) {
+                return Map.of();
         }
 
         @Scheduled(fixedRate = 60000) // 每分钟更新一次缓存
