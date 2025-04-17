@@ -29,6 +29,10 @@ public final class Response<T> implements Serializable {
         return Response.<T>builder().code(500).info(info).build();
     }
 
+    public static <T> Response<T> paramFail(String info) {
+        return Response.<T>builder().code(400).info(info).build();
+    }
+
     public static <T> Response<T> authFail(String info) {
         return Response.<T>builder().code(401).info(info).build();
     }
