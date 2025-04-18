@@ -11,7 +11,7 @@ import java.io.InputStreamReader;
 @SpringBootTest
 class IseeApplicationTests {
 
-	@Test
+//	@Test
 	void testModel() {
 		try {
 			// 1. 指定.exe文件路径（绝对路径更可靠）

@@ -74,7 +74,7 @@ public class ImageController {
             byte[] compressedBytes = outputStream.toByteArray();
             MultipartFile compressedImage = new CustomMultipartFile(compressedBytes, jpgFileName(image));
 
-            Image originImage = imageService.uploadImage(compressedImage);
+            Image originImage = imageService.saveAndUploadImage(compressedImage);
             Image resultImage = imageService.executeDetect(originImage);
             return Response.success(new DetectResponse(originImage, resultImage));
         }

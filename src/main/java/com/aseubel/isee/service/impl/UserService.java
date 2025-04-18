@@ -43,7 +43,7 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IUserS
 
         // 生成token并存入Redis
         String token = UUID.randomUUID().toString();
-        redissonService.setValue("token:" + token, user, 3600 * 1000); // 1小时过期
+        redissonService.setValue("token:" + token, user, 24 * 3600 * 1000); // 24小时过期
 
         return token;
     }
@@ -56,7 +56,7 @@ public class UserService extends ServiceImpl<UserMapper, User> implements IUserS
             throw new AuthException("未登录或token已过期");
         }
         String newToken = UUID.randomUUID().toString();
-        redissonService.setValue("token:" + newToken, user, 3600 * 1000); // 1小时过期
+        redissonService.setValue("token:" + newToken, user, 24 * 3600 * 1000); // 24小时过期
 
         return newToken;
     }

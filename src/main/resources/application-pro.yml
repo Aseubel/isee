@@ -6,6 +6,18 @@ server:
       min-spare: 50   # 初始化线程数,最小空闲线程数,默认是10
     accept-count: 10  # 等待队列长度
 
+# 模型配置
+model:
+  exePath: /data/run_headless/run_headless.exe
+  origin-dist-path: /model/data
+  result-dist-path: /model/runs
+  origin-img-path: /model/data/image.jpg
+  result-img-path: /model/runs/image.jpg
+  img-name: image.jpg
+  script:
+    path: /model
+    name: detect.py
+
 # 应用配置
 app:
   config:

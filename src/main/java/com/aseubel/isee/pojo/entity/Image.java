@@ -70,4 +70,15 @@ public class Image {
         return objectName.toString();
     }
 
+    /**
+     * 获取在OSS中的文件名称（在类型文件夹下）
+     */
+    public String jpgImageObjectName() {
+        StringBuilder objectName = new StringBuilder();
+        objectName.append(APP).append("/")
+                .append(imageId)
+                .append(".jpg");
+        return objectName.toString();
+    }
+
 }

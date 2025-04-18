@@ -4,7 +4,7 @@ version: '3.3'
 # 你需要修改system为你自身系统的仓库名
 services:
   utopia:
-    image: crpi-5tzwiznwaw34lfca.cn-guangzhou.personal.cr.aliyuncs.com/aseubel/utopia:latest
+    image: crpi-5tzwiznwaw34lfca.cn-guangzhou.personal.cr.aliyuncs.com/aseubel/isee:latest
     container_name: isee
     restart: on-failure
     ports:
@@ -19,6 +19,8 @@ services:
       - SERVER_PORT=20611
       - REDIS_SDK_CONFIG_HOST=redis
       - REDIS_SDK_CONFIG_PORT=6379
+      - OSS_ACCESS_KEY_ID=YOUR_ACCESS_KEY_ID
+      - OSS_ACCESS_KEY_SECRET=YOUR_ACCESS_KEY_SECRET
     volumes:
       - ./log:/data/log
     logging:
