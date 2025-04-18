@@ -6,6 +6,18 @@ server:
       min-spare: 50   # 初始化线程数,最小空闲线程数,默认是10
     accept-count: 10  # 等待队列长度
 
+# 模型配置
+model:
+  exePath: D:\BaiduNetdiskDownload\yolov8\run_headless\run_headless.exe
+  origin-dist-path: D:\develop\Python-study\dataset
+  result-dist-path: D:\develop\Python-study\runs
+  origin-img-path: D:\develop\Python-study\dataset\image.jpg
+  result-img-path: D:\develop\Python-study\runs\image.jpg
+  img-name: image.jpg
+  script:
+    path: D:\develop\Python-study
+    name: detect.py
+
 # 应用配置
 app:
   config:
