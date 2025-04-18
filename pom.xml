@@ -138,7 +138,7 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<version>3.4.4</version>
 				<configuration>
-					<mainClass>com.aseubel.autogo.IseeApplication</mainClass>
+					<mainClass>com.aseubel.isee.IseeApplication</mainClass>
 				</configuration>
 				<executions>
 					<execution>
