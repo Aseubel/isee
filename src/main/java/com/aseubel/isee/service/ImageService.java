@@ -14,15 +14,13 @@ import java.io.IOException;
 public interface ImageService extends IService<Image> {
 
     /**
-     * 上传并保存图片
-     * @param image 图片文件
-     * @return 图片对象
+     * 保存图片
+     * @param image 图片
      */
-    Image saveAndUploadImage(MultipartFile image) throws IOException, ClientException;
+    void saveImage(Image image) throws IOException, ClientException;
 
     /**
      * 执行图片检测
-     * @param originImage 原图
      * @return 检测结果图片
      */
     Image executeDetect(Image originImage) throws ClientException, IOException;
@@ -33,4 +31,11 @@ public interface ImageService extends IService<Image> {
      * @return 图片字节数组
      */
     byte[] simpleDownload(String imageUrl) throws ClientException;
+
+    /**
+     * 上传图片
+     * @param image 图片
+     * @return 图片对象
+     */
+    Image uploadImage(Image image) throws ClientException;
 }

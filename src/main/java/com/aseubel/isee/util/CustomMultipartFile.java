@@ -15,6 +15,16 @@ public class CustomMultipartFile implements MultipartFile {
         this.fileName = fileName;
     }
 
+    public CustomMultipartFile(File file) throws IOException {
+        this.fileContent = Files.readAllBytes(file.toPath());
+        this.fileName = file.getName();
+    }
+
+    public CustomMultipartFile(byte[] fileContent) {
+        this.fileContent = fileContent;
+        this.fileName = "unknown";
+    }
+
     @NotNull
     @Override
     public String getName() {

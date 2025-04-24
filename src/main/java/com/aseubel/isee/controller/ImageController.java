@@ -1,13 +1,12 @@
 package com.aseubel.isee.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.aliyuncs.exceptions.ClientException;
 import com.aseubel.isee.common.Response;
-import com.aseubel.isee.pojo.dto.DetectResponse;
-import com.aseubel.isee.pojo.dto.ImageResponse;
-import com.aseubel.isee.pojo.dto.QueryImageRequest;
-import com.aseubel.isee.pojo.dto.SaveResultRequest;
+import com.aseubel.isee.common.constant.ImageStatus;
+import com.aseubel.isee.pojo.dto.*;
 import com.aseubel.isee.pojo.entity.Image;
 import com.aseubel.isee.pojo.entity.Result;
 import com.aseubel.isee.service.ImageService;
@@ -19,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,6 +29,8 @@ import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+
+import static com.aseubel.isee.common.constant.ImageStatus.ORIGINAL_UNDETECTED;
 
 /**
  * 图片接口
@@ -50,15 +52,51 @@ public class ImageController {
     private ResultService resultService;
 
     /**
-     * 上传图片执行检测
+     * 上传图片
      */
-    @PostMapping("/execute")
-    public Response<DetectResponse> execute(MultipartFile image, HttpServletResponse response) throws ClientException, IOException {
+    @PostMapping("/upload")
+    public Response<ImageResponse> upload(@ModelAttribute UploadRequest request, HttpServletResponse response) throws ClientException, IOException {
+        MultipartFile image = request.getImage();
         if (StrUtil.isEmpty(image.getOriginalFilename())) {
-            response.setStatus(400);
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
             return null;
         }
+        Image imageEntity = requestToImage(request);
+        imageEntity = imageService.uploadImage(imageEntity);
+        return Response.success(new ImageResponse(imageEntity));
+    }
 
+    /**
+     * 执行检测
+     */
+    @PostMapping("/execute")
+    public Response<DetectResponse> execute(String imageId, HttpServletResponse response) throws ClientException, IOException {
+        if (StrUtil.isEmpty(imageId)) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            return null;
+        }
+        Image originImage = imageService.getById(imageId);
+        if (ObjectUtil.isEmpty(originImage) || StrUtil.isEmpty(originImage.getImageUrl())) {
+            return Response.paramFail("图片不存在或上传时丢失");
+        }
+        // 获取原图
+        byte[] imageBytes = imageService.simpleDownload(originImage.getImageUrl());
+        MultipartFile originImageFile = new CustomMultipartFile(imageBytes);
+        originImage.setImage(originImageFile);
+        // 持久化到本地
+        imageService.saveImage(originImage);
+
+        Image resultImage = imageService.executeDetect(originImage);
+        if (ObjectUtil.isEmpty(resultImage)) {
+            saveResult(originImage, originImage, 1);
+            return Response.success(new DetectResponse(originImage));
+        } else {
+            saveResult(originImage, resultImage, 2);
+            return Response.success(new DetectResponse(originImage, resultImage));
+        }
+    }
+
+    private MultipartFile compressImage(MultipartFile image) {
         // 将图片进行处理，如转成jpg格式，压缩大小等
         try (InputStream inputStream = image.getInputStream();
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
@@ -73,45 +111,60 @@ public class ImageController {
             // 将压缩后的图片转换为Base64字符串
             byte[] compressedBytes = outputStream.toByteArray();
             MultipartFile compressedImage = new CustomMultipartFile(compressedBytes, jpgFileName(image));
-
-            Image originImage = imageService.saveAndUploadImage(compressedImage);
-            Image resultImage = imageService.executeDetect(originImage);
-            return Response.success(new DetectResponse(originImage, resultImage));
+            return compressedImage;
+             } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
     private String jpgFileName(MultipartFile image) {
         String originalFilename = image.getOriginalFilename();
-        return originalFilename.substring(0, originalFilename.lastIndexOf('.')) + ".jpg";
+        return originalFilename.substring(originalFilename.lastIndexOf('.')) + ".jpg";
     }
 
     /**
      * 保存检测结果
      */
-    @PostMapping("/result")
-    public Response<?> saveResult(@RequestBody SaveResultRequest request) {
+    private void saveResult(Image image1, Image image2, Integer type) {
         Result result = Result.builder()
-                .originImageId(request.getOriginImageId())
-                .resultImageId(request.getResultImageId())
-                .type(request.getType())
-                .farm(request.getFarm())
-                .area(request.getArea())
+                .originImageId(image1.getImageId())
+                .resultImageId(image2.getImageId())
+                .type(type)
+                .farm(image1.getFarm())
+                .area(image1.getArea())
                 .build();
         AtomicBoolean ifExists = new AtomicBoolean(false);
         resultService.query()
-                .eq("origin_image_id", request.getOriginImageId())
-                .eq("result_image_id", request.getResultImageId())
-                .eq("type", request.getType())
-                .eq("farm", request.getFarm())
-                .eq("area", request.getArea())
+                .eq("origin_image_id", result.getOriginImageId())
+                .eq("result_image_id", result.getResultImageId())
+                .eq("type", result.getType())
+                .eq("farm", result.getFarm())
+                .eq("area", result.getArea())
                 .last("LIMIT 1").oneOpt().ifPresent(
                         r -> ifExists.set(true)
                 );
         if (ifExists.get()) {
-            return Response.paramFail("请勿重复保存相同的结果");
+            throw new IllegalArgumentException("请勿重复保存相同的结果");
         }
         resultService.save(result);
-        return Response.success();
+    }
+
+    /**
+     * 查询未检测的图片
+     */
+    @GetMapping("/undetected")
+    public Response<List<ImageResponse>> queryUnDetectedImages(QueryImageRequest request) {
+        List<Image> images = imageService.list(
+                new QueryWrapper<Image>()
+                        .eq("farm", request.getFarm())
+                        .eq("area", request.getArea())
+                        .eq("status", ORIGINAL_UNDETECTED)
+                        .between("create_time", request.getStartTime(), request.getEndTime())
+        );
+        if (CollectionUtil.isEmpty(images)) {
+            return Response.success(Collections.emptyList());
+        }
+        return Response.success(imageToResponse(images));
     }
 
     /**
@@ -119,11 +172,14 @@ public class ImageController {
      */
     @GetMapping("")
     public Response<List<List<ImageResponse>>> queryImages(QueryImageRequest request, HttpServletResponse response) {
-        // 1. 查询结果列表
+        // 查询结果列表
         List<Result> results = resultService.list(
                 new QueryWrapper<Result>()
                         .eq("farm", request.getFarm())
                         .eq("area", request.getArea())
+                        .eq(request.getType() != 0, "type", request.getType())
+                        .between("detect_time", request.getStartTime(), request.getEndTime())
+                        .eq("is_deleted", 0)
         );
         if (CollectionUtil.isEmpty(results)) {
             return Response.success(Collections.emptyList());
@@ -136,12 +192,12 @@ public class ImageController {
             allImageIds.add(result.getResultImageId());
         });
 
-        // 2. 查询所有关联的图片，并构建 ID → Image 的映射
+        // 查询所有关联的图片，并构建 ID → Image 的映射
         Map<String, Image> imageMap = imageService.list(
                 new QueryWrapper<Image>().in("image_id", allImageIds)
         ).stream().collect(Collectors.toMap(Image::getImageId, image -> image));
 
-        // 3. 按 Result 分组构建二维数组
+        // 按 Result 分组构建二维数组
         List<List<ImageResponse>> groupedImages = new ArrayList<>();
         for (Result result : results) {
             Image originImg = imageMap.get(result.getOriginImageId());
@@ -182,4 +238,11 @@ public class ImageController {
         return images.stream().map(ImageResponse::new).toList();
     }
 
+    private Image requestToImage(UploadRequest request) {
+        Image image = new Image();
+        image.setImage(request.getImage());
+        image.setFarm(request.getFarm());
+        image.setArea(request.getArea());
+        return image;
+    }
 }

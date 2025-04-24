@@ -1,22 +1,24 @@
 package com.aseubel.isee.service.impl;
 
+import cn.hutool.core.io.FileUtil;
 import com.aliyuncs.exceptions.ClientException;
 import com.aseubel.isee.dao.ImageMapper;
 import com.aseubel.isee.pojo.entity.Image;
 import com.aseubel.isee.service.ImageService;
 import com.aseubel.isee.util.AliOSSUtil;
+import com.aseubel.isee.util.CustomMultipartFile;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
-import java.nio.file.Path;
 
 import static com.aseubel.isee.common.constant.Constant.APP;
+import static com.aseubel.isee.common.constant.ImageStatus.*;
 
 /**
  * @author Aseubel
@@ -26,6 +28,10 @@ import static com.aseubel.isee.common.constant.Constant.APP;
 @Slf4j
 public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements ImageService {
 
+    @Value("${model.script.path}")
+    private String scriptPath;
+    @Value("${model.script.name}")
+    private String scriptName;
     @Value("${model.exePath}")
     private String exePath;
     @Value("${model.origin-dist-path}")
@@ -45,28 +51,46 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
     @Autowired
     private ImageMapper imageMapper;
 
-    @Autowired
-    private ProcessBuilder processBuilder;
-
-
-
     @Override
     public Image executeDetect(Image originImage) throws ClientException, IOException {
+        // 执行检测脚本，生成结果图片
         runPython();
-        String path = resultImgPath;
 
-        Image resultImage = uploadImage(path);
-//        // 删除临时文件
-//        boolean deleted = deleteTempFile();
-//        if (deleted) {
-//            log.info("临时文件已删除！");
-//        } else {
-//            log.warn("临时文件删除失败！");
-//        }
+        // 拿到扩展名
+        String oFileName = originImage.getImageUrl();
+        String imageType = oFileName.substring(oFileName.lastIndexOf("."));
+
+        // 获取结果图片
+        String path = resultDistPath + "/" + imgName + imageType;
+        File file = new File(path);
+        if (!file.exists()) {
+            imageMapper.update(new UpdateWrapper<Image>()
+                    .set("status", DETECTED_NO_PEST.value())
+                    .eq("image_id", originImage.getImageId())
+            );
+            return null;
+        } else {
+            imageMapper.update(new UpdateWrapper<Image>()
+                    .set("status", DETECTED_WITH_PEST.value())
+                    .eq("image_id", originImage.getImageId())
+            );
+        }
+
+        // 上传结果图片到OSS
+        Image resultImage = new Image(new CustomMultipartFile(FileUtil.readBytes(path), oFileName));
+        resultImage.setStatus(RESULT_IMAGE.value());
+        resultImage = uploadImage(resultImage);
+
+        // 删除临时图片，因为我们要根据有没有结果图片来判断是否有害虫
+        if (deleteTempFile(imageType)) {
+            log.info("删除临时文件成功");
+        } else {
+            log.error("删除临时文件失败");
+        }
         return resultImage;
     }
 
-    private boolean deleteTempFile() throws IOException {
+    private boolean deleteTempFile(String imageType) throws IOException {
         // 指定存储目录
         File uploadDir = new File(originDistPath);
         File resultDir = new File(resultDistPath);
@@ -78,12 +102,12 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
             throw new IOException("无法创建目录: " + uploadDir.getAbsolutePath());
         }
         // 指定文件名
-        String filename = imgName;
+        String filename = imgName + imageType;
         // 构建目标文件路径
         File uploadFile = new File(uploadDir, filename);
         File resultFile = new File(resultDir, filename);
         // 删除文件
-        return uploadFile.delete() && resultFile.delete();
+        return (!uploadFile.exists() || uploadFile.delete()) && (!resultFile.exists() || resultFile.delete());
     }
 
     @Override
@@ -91,16 +115,23 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
         return aliOSSUtil.download(imageUrl.substring(imageUrl.indexOf(APP)));
     }
 
-    private Image uploadImage(MultipartFile image) throws ClientException {
+    @Override
+    public Image uploadImage(Image image) throws ClientException {
         Image imageEntity = new Image(image);
-        String url = aliOSSUtil.upload(image, imageEntity.imageObjectName());
-        imageEntity.setImageUrl(url);
+        new Thread(() -> {
+            try {
+                aliOSSUtil.upload(image.getImage(), imageEntity.imageObjectName());
+            } catch (ClientException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
+        imageEntity.ossUrl();
         imageMapper.insert(imageEntity);
         return imageEntity;
     }
 
     @Override
-    public Image saveAndUploadImage(MultipartFile image) throws IOException, ClientException {
+    public void saveImage(Image image) throws IOException, ClientException {
         // 指定存储目录
         File uploadDir = new File(originDistPath);
         // 确保目录存在
@@ -108,51 +139,20 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
             throw new IOException("无法创建目录: " + uploadDir.getAbsolutePath());
         }
         // 指定文件名
-        String filename = imgName;
+        String oFileName = image.getImageUrl();
+        String filename = imgName + oFileName.substring(oFileName.lastIndexOf("."));
         // 构建目标文件路径
         File targetFile = new File(uploadDir, filename);
         // 转存文件到目标位置
-        image.transferTo(targetFile);
-
-        Image imageEntity = new Image(image);
-        String url = aliOSSUtil.upload(image, imageEntity.imageObjectName());
-        imageEntity.setImageUrl(url);
-        imageMapper.insert(imageEntity);
-        return imageEntity;
-    }
-
-    private Image uploadImage(String imagePath) {
-        File file = new File(imagePath);
-        if (!file.exists()) {
-            log.error("模型运行检测失败，未生成结果文件");
-            return null;
-        }
-
-        Image imageEntity = new Image();
-        String url = null;
-        try {
-            url = aliOSSUtil.upload(new FileInputStream(file), imageEntity.jpgImageObjectName());
-        } catch (ClientException e) {
-            log.error("OSS上传失败", e);
-            return null;
-        } catch (FileNotFoundException e) {
-            log.error("模型运行检测失败，未找到结果文件");
-            return null;
-        }
-        imageEntity.setImageUrl(url);
-        imageMapper.insert(imageEntity);
-//        boolean deleted = file.delete();
-//
-//        if (deleted) {
-//            log.info("临时文件已删除: {}", imagePath);
-//        } else {
-//            log.warn("临时文件删除失败: {}", imagePath);
-//        }
-        return imageEntity;
+        image.getImage().transferTo(targetFile);
     }
 
     private void runPython() {
         try {
+            // 创建ProcessBuilder实例
+            ProcessBuilder processBuilder = new ProcessBuilder("python", scriptName);
+            // 设置工作目录为Python脚本所在的目录
+            processBuilder.directory(new File(scriptPath));
             // 启动进程
             Process process = processBuilder.start();
 

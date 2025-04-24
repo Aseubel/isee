@@ -30,9 +30,13 @@ public class DetectResponse implements Serializable {
     @FieldDesc(name = "结果图url")
     private String resultUrl;
 
+    @FieldDesc(name = "有无害虫")
+    private Boolean hasVirus;
+
     public DetectResponse(Image image) {
         this.originImageId = image.getImageId();
         this.originUrl = image.getImageUrl();
+        this.hasVirus = false;
     }
 
     public DetectResponse(Image image1, Image image2) {
@@ -40,5 +44,6 @@ public class DetectResponse implements Serializable {
         this.originUrl = image1.getImageUrl();
         this.resultImageId = image2.getImageId();
         this.resultUrl = image2.getImageUrl();
+        this.hasVirus = true;
     }
 }
