@@ -13,10 +13,10 @@ model:
   result-dist-path: /model/runs
   origin-img-path: /model/data/image.jpg
   result-img-path: /model/runs/image.jpg
-  img-name: image.jpg
+  img-name: image
   script:
     path: /model
-    name: detect-linux.py
+    name: detect.py
 
 # 应用配置
 app:
@@ -40,9 +40,9 @@ thread:
 # 数据库配置；启动时配置数据库资源信息
 spring:
   datasource:
-    username: u_test
-    password: p_test
-    url: jdbc:mysql://120.77.250.8/PFAlldata_DB?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&serverTimezone=UTC&useSSL=true
+    username: root
+    password: 123456
+    url: jdbc:mysql://127.0.0.1:3306/isee?useUnicode=true&characterEncoding=utf8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&serverTimezone=UTC&useSSL=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       pool-name: Retail_HikariCP

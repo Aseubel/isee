@@ -1,6 +1,7 @@
 package com.aseubel.isee.service.impl;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.http.HttpUtil;
 import com.aliyuncs.exceptions.ClientException;
 import com.aseubel.isee.dao.ImageMapper;
 import com.aseubel.isee.pojo.entity.Image;
@@ -13,9 +14,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 import static com.aseubel.isee.common.constant.Constant.APP;
 import static com.aseubel.isee.common.constant.ImageStatus.*;
@@ -54,7 +57,7 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
     @Override
     public Image executeDetect(Image originImage) throws ClientException, IOException {
         // 执行检测脚本，生成结果图片
-        runPython();
+        runPythonByPost();
 
         // 拿到扩展名
         String oFileName = originImage.getImageUrl();
@@ -82,12 +85,46 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
         resultImage = uploadImage(resultImage);
 
         // 删除临时图片，因为我们要根据有没有结果图片来判断是否有害虫
-        if (deleteTempFile(imageType)) {
-            log.info("删除临时文件成功");
+        if (deleteTempDist()) {
+            log.info("删除临时文件夹成功");
         } else {
-            log.error("删除临时文件失败");
+            log.error("删除临时文件夹失败");
         }
         return resultImage;
+    }
+
+    private boolean deleteTempDist() {
+        File originDir = new File(originDistPath);
+        File resultDir = new File(resultDistPath);
+        // 封装目录删除逻辑
+        return deleteDirectoryRecursively(originDir) &&
+                deleteDirectoryRecursively(resultDir);
+    }
+
+    /**
+     * 递归删除目录及子内容
+     * @param dir 要删除的目录
+     * @return true表示完全删除，false表示删除失败
+     */
+    private boolean deleteDirectoryRecursively(File dir) {
+        if (dir == null || !dir.exists()) {
+            return true; // 目录不存在视为删除成功
+        }
+        // 如果是文件直接删除
+        if (dir.isFile()) {
+            return dir.delete();
+        }
+        // 递归删除子目录
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (!deleteDirectoryRecursively(file)) {
+                    return false; // 子文件/目录删除失败则终止
+                }
+            }
+        }
+        // 最后删除空目录
+        return dir.delete();
     }
 
     private boolean deleteTempFile(String imageType) throws IOException {
@@ -145,6 +182,10 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
         File targetFile = new File(uploadDir, filename);
         // 转存文件到目标位置
         image.getImage().transferTo(targetFile);
+    }
+
+    private void runPythonByPost() {
+        HttpUtil.createPost("http://localhost:8000/predict").timeout(3000).execute();
     }
 
     private void runPython() {

@@ -14,10 +14,8 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ## 配置Python环境
 #RUN ln -snf /usr/bin/python3 /usr/bin/python && \
 #    pip3 install --upgrade pip
-#RUN pip install requests numpy matplotlib opencv-python
-#RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
-#    --trusted-host pypi.tuna.tsinghua.edu.cn \
-#    requests numpy matplotlib opencv-python-headless
+#RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple
+# apt-get install -y libglib2.0-0
 # 添加应用
 ADD target/isee-app.jar /isee-app.jar
 

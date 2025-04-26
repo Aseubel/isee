@@ -9,6 +9,7 @@ services:
     restart: on-failure
     ports:
       - "20611:20611"
+      - "8000:8000"
     environment:
       - TZ=PRC
       - SPRING_DATASOURCE_USERNAME=u_test
@@ -23,6 +24,8 @@ services:
       - OSS_ACCESS_KEY_SECRET=YOUR_ACCESS_KEY_SECRET
     volumes:
       - ./log:/data/log
+      - /home/model:/model
+      - /home/apt:/etc/apt
     logging:
       driver: "json-file"
       options:
