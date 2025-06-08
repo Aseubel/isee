@@ -12,10 +12,13 @@ import com.aseubel.isee.util.AliOSSUtil;
 import com.aseubel.isee.util.CustomMultipartFile;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -35,6 +38,9 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
 
     @Autowired
     private DetectServerProperties detectServerProperties;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     @Value("${model.script.path}")
     private String scriptPath;
@@ -62,7 +68,17 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
     @Override
     public Image executeDetect(Image originImage) throws ClientException, IOException {
         // 执行检测脚本，生成结果图片
-        runPythonByPost();
+        try {
+            runPythonByPost();
+        } catch (Exception e) {
+            log.error("Python脚本执行失败", e);
+            if (deleteTempDist()) {
+                log.info("删除临时data成功");
+            } else {
+                log.error("删除临时data失败");
+            }
+            throw e;
+        }
 
         // 拿到扩展名
         String oFileName = originImage.getImageUrl();
@@ -191,9 +207,12 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
 
     private void runPythonByPost() {
         log.info("开始执行Python脚本");
-        HttpResponse execute = HttpUtil.createPost("http://" + detectServerProperties.getInternalIp() + ":8000/predict")
-                .timeout(detectServerProperties.getTimeout()).execute();
-        log.info("Python脚本执行完毕，返回状态码: {}", execute.getStatus());
+//        try(HttpResponse execute = HttpUtil.createPost("http://" + detectServerProperties.getInternalIp() + ":8000/predict")
+//                .timeout(detectServerProperties.getTimeout()).execute()) {
+//            log.info("Python脚本执行完毕，返回状态码: {}", execute.getStatus());
+        String url = "http://" + detectServerProperties.getInternalIp() + ":8000/predict";
+        restTemplate.postForObject(url, null, String.class);
+        log.info("Python脚本执行完毕");
     }
 
     private void runPython() {
