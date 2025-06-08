@@ -37,9 +37,6 @@ import static com.aseubel.isee.common.constant.ImageStatus.*;
 public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements ImageService {
 
     @Autowired
-    private DetectServerProperties detectServerProperties;
-
-    @Autowired
     private RestTemplate restTemplate;
 
     @Value("${model.script.path}")
@@ -58,6 +55,11 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
     private String resultImgPath;
     @Value("${model.img-name}")
     private String imgName;
+
+    @Value("${detect.server.host}")
+    private String host;
+    @Value("${detect.server.port}")
+    private String port;
 
     @Autowired
     private AliOSSUtil aliOSSUtil;
@@ -210,7 +212,7 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
 //        try(HttpResponse execute = HttpUtil.createPost("http://" + detectServerProperties.getInternalIp() + ":8000/predict")
 //                .timeout(detectServerProperties.getTimeout()).execute()) {
 //            log.info("Python脚本执行完毕，返回状态码: {}", execute.getStatus());
-        String url = "http://" + detectServerProperties.getInternalIp() + ":8000/predict";
+        String url = "http://" + host + ":" + port + "/predict";
         restTemplate.postForObject(url, null, String.class);
         log.info("Python脚本执行完毕");
     }

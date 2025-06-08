@@ -8,7 +8,8 @@ server:
 
 detect:
   server:
-    internal-ip: 127.0.0.1  # 服务器内部IP地址，用于内部通信
+    host: 127.0.0.1  # 主机地址
+    port: 8000  # 端口
     timeout: 10000  # 超时时间，单位毫秒，默认10秒
 
 # 模型配置
