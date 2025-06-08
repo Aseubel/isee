@@ -1,8 +1,10 @@
 package com.aseubel.isee.service.impl;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import com.aliyuncs.exceptions.ClientException;
+import com.aseubel.isee.config.DetectServerProperties;
 import com.aseubel.isee.dao.ImageMapper;
 import com.aseubel.isee.pojo.entity.Image;
 import com.aseubel.isee.service.ImageService;
@@ -30,6 +32,9 @@ import static com.aseubel.isee.common.constant.ImageStatus.*;
 @Service
 @Slf4j
 public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements ImageService {
+
+    @Autowired
+    private DetectServerProperties detectServerProperties;
 
     @Value("${model.script.path}")
     private String scriptPath;
@@ -185,7 +190,10 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
     }
 
     private void runPythonByPost() {
-        HttpUtil.createPost("http://localhost:8000/predict").timeout(3000).execute();
+        log.info("开始执行Python脚本");
+        HttpResponse execute = HttpUtil.createPost("http://" + detectServerProperties.getInternalIp() + ":8000/predict")
+                .timeout(detectServerProperties.getTimeout()).execute();
+        log.info("Python脚本执行完毕，返回状态码: {}", execute.getStatus());
     }
 
     private void runPython() {
