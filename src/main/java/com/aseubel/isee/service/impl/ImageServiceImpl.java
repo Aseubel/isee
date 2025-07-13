@@ -24,6 +24,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static com.aseubel.isee.common.constant.Constant.APP;
 import static com.aseubel.isee.common.constant.ImageStatus.*;
@@ -35,6 +36,8 @@ import static com.aseubel.isee.common.constant.ImageStatus.*;
 @Service
 @Slf4j
 public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements ImageService {
+
+    private final ReentrantLock lock = new ReentrantLock();
 
     @Autowired
     private RestTemplate restTemplate;
@@ -69,6 +72,11 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
 
     @Override
     public Image executeDetect(Image originImage) throws ClientException, IOException {
+        lock.lock();
+
+        // 持久化到本地
+        saveImage(originImage);
+
         // 执行检测脚本，生成结果图片
         try {
             runPythonByPost();
@@ -113,6 +121,7 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
         } else {
             log.error("删除临时文件夹失败");
         }
+        lock.unlock();
         return resultImage;
     }
 
@@ -190,8 +199,7 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
         return imageEntity;
     }
 
-    @Override
-    public void saveImage(Image image) throws IOException, ClientException {
+    private void saveImage(Image image) throws IOException, ClientException {
         // 指定存储目录
         File uploadDir = new File(originDistPath);
         // 确保目录存在
@@ -213,8 +221,8 @@ public class ImageServiceImpl extends ServiceImpl<ImageMapper, Image> implements
 //                .timeout(detectServerProperties.getTimeout()).execute()) {
 //            log.info("Python脚本执行完毕，返回状态码: {}", execute.getStatus());
         String url = "http://" + host + ":" + port + "/predict";
-        restTemplate.postForObject(url, null, String.class);
-        log.info("Python脚本执行完毕");
+        Object result = restTemplate.postForObject(url, null, Object.class);
+        log.info("Python脚本执行完毕, result: {}", result);
     }
 
     private void runPython() {

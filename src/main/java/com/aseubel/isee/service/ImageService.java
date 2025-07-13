@@ -14,12 +14,6 @@ import java.io.IOException;
 public interface ImageService extends IService<Image> {
 
     /**
-     * 保存图片
-     * @param image 图片
-     */
-    void saveImage(Image image) throws IOException, ClientException;
-
-    /**
      * 执行图片检测
      * @return 检测结果图片
      */

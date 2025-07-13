@@ -83,15 +83,33 @@ public class ImageController {
         byte[] imageBytes = imageService.simpleDownload(originImage.getImageUrl());
         MultipartFile originImageFile = new CustomMultipartFile(imageBytes);
         originImage.setImage(originImageFile);
-        // 持久化到本地
-        imageService.saveImage(originImage);
+        Image resultImage;
 
-        Image resultImage = imageService.executeDetect(originImage);
+        resultImage = imageService.executeDetect(originImage);
         if (ObjectUtil.isEmpty(resultImage)) {
             saveResult(originImage, originImage, 1);
             return Response.success(new DetectResponse(originImage));
         } else {
             saveResult(originImage, resultImage, 2);
+            return Response.success(new DetectResponse(originImage, resultImage));
+        }
+    }
+
+    /**
+     * 实时执行检测，不保存结果
+     */
+    @PostMapping("/detect/real-time")
+    public Response<DetectResponse> executeRealTime(@ModelAttribute UploadRequest request, HttpServletResponse response) throws ClientException, IOException {
+        MultipartFile image = request.getImage();
+        if (StrUtil.isEmpty(image.getOriginalFilename())) {
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            return null;
+        }
+        Image originImage = requestToImage(request);
+        Image resultImage = imageService.executeDetect(originImage);
+        if (ObjectUtil.isEmpty(resultImage)) {
+            return Response.success(new DetectResponse(originImage));
+        } else {
             return Response.success(new DetectResponse(originImage, resultImage));
         }
     }
